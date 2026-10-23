@@ -1,0 +1,6 @@
+{
+  "name": "TCSD ALS DataSphere",
+  "description": "An interactive data platform and monitoring system for the Alternative Learning System (ALS) of Tarlac City Schools Division (TCSD) in Tarlac City, integrated with a secure Google Workspace Hub.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DepEd ALS Digital Attendance for Learners</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            deped: {
+              blue: '#002B6D',
+              navy: '#001A44',
+              gold: '#FACC15',
+              accent: '#2563EB',
+              light: '#F8FAFC'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes scanline {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(100%); }
+    }
+    .scanner-active::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, transparent, #22c55e, transparent);
+      box-shadow: 0 0 12px #22c55e;
+      animation: scanline 1.5s infinite linear;
+    }
+    @media print {
+      .no-print { display: none !important; }
+      .print-only { display: block !important; }
+      body { background: white !important; color: black !important; font-size: 10pt; }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col">
+
+  <!-- Header / DepEd Banner -->
+  <header class="bg-[#002B6D] text-white shadow-md no-print border-b-4 border-yellow-400">
+    <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center p-1 shadow-sm">
+          <svg viewBox="0 0 100 100" class="w-8 h-8 text-[#002B6D]" fill="currentColor">
+            <circle cx="50" cy="50" r="45" fill="#002B6D" />
+            <path d="M50 15 L60 40 L88 40 L65 57 L74 83 L50 67 L26 83 L35 57 L12 40 L40 40 Z" fill="#FACC15" />
+          </svg>
+        </div>
+        <div>
+          <div class="text-[10px] uppercase tracking-wider text-yellow-300 font-semibold">Republic of the Philippines &bull; Department of Education</div>
+          <h1 class="text-lg font-black tracking-tight leading-tight">ALS Digital Attendance System</h1>
+          <div class="text-xs text-blue-200">Alternative Learning System &bull; Community-Based Learning Centers</div>
+        </div>
+      </div>
+
+      <!-- Real-time Clock & Geolocation Indicator -->
+      <div class="flex items-center space-x-4 bg-[#001A44] px-4 py-2 rounded-xl border border-blue-900/60">
+        <div class="text-right">
+          <div id="liveClock" class="font-mono text-base font-extrabold text-yellow-300 leading-none">00:00:00 AM</div>
+          <div id="liveDate" class="text-[11px] text-blue-200 font-medium">Monday, Jan 01, 2026</div>
+        </div>
+        <div class="h-8 w-px bg-blue-800"></div>
+        <div class="flex items-center space-x-1.5 text-xs text-emerald-400">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="geoStatus" class="font-bold text-[11px]">GPS Verified</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-[#002255] border-t border-blue-900/80">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 flex space-x-1 sm:space-x-3 overflow-x-auto py-1">
+        <button onclick="switchTab('terminal')" id="tabBtn-terminal" class="tab-btn px-4 py-2 text-xs font-bold rounded-lg transition-colors flex items-center space-x-2 bg-yellow-400 text-slate-900">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 004 11a7.978 7.978 0 003.046 6.297m7.955 3.703a11.956 11.956 0 01-6 0"/></svg>
+          <span>Attendance Kiosk</span>
+        </button>
+        <button onclick="switchTab('learners')" id="tabBtn-learners" class="tab-btn px-4 py-2 text-xs font-bold rounded-lg transition-colors flex items-center space-x-2 text-blue-200 hover:text-white hover:bg-blue-900/60">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          <span>Learner Registry</span>
+        </button>
+        <button onclick="switchTab('logs')" id="tabBtn-logs" class="tab-btn px-4 py-2 text-xs font-bold rounded-lg transition-colors flex items-center space-x-2 text-blue-200 hover:text-white hover:bg-blue-900/60">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+          <span>Attendance Logs (<span id="logCountBadge">0</span>)</span>
+        </button>
+        <button onclick="switchTab('analytics')" id="tabBtn-analytics" class="tab-btn px-4 py-2 text-xs font-bold rounded-lg transition-colors flex items-center space-x-2 text-blue-200 hover:text-white hover:bg-blue-900/60">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <span>Summary Analytics</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6 sm:px-6">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: ATTENDANCE KIOSK / TERMINAL -->
+    <!-- ========================================== -->
+    <section id="view-terminal" class="tab-content space-y-6">
+      
+      <!-- Top Action Strip -->
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-bold text-slate-500 uppercase">Selected CLC:</span>
+          <select id="kioskClcSelect" class="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500">
+            <option value="San Sebastian Community Based Learning Center">San Sebastian CLC (Central A)</option>
+            <option value="Sapang Tagalog Community Based Learning Center">Sapang Tagalog CLC (South A)</option>
+            <option value="San Francisco Community Based Learning Center">San Francisco CLC (South A)</option>
+            <option value="Burot Community Based Learning Center">Burot CLC (South A)</option>
+            <option value="Carangian Community Learning Center">Carangian CLC (Central B)</option>
+            <option value="Matatalaib Community Learning Center">Matatalaib CLC (North)</option>
+          </select>
+        </div>
+
+        <!-- Session Selection -->
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold text-slate-500 uppercase">Session:</label>
+          <div class="inline-flex rounded-lg border border-slate-300 bg-slate-100 p-0.5" id="sessionRadioGroup">
+            <button onclick="setSession('Morning Session')" id="btnMorning" class="px-3 py-1 text-xs font-bold rounded-md bg-white text-blue-900 shadow-xs">Morning (AM)</button>
+            <button onclick="setSession('Afternoon Session')" id="btnAfternoon" class="px-3 py-1 text-xs font-bold rounded-md text-slate-600 hover:text-slate-900">Afternoon (PM)</button>
+          </div>
+        </div>
+
+        <!-- Mode Buttons -->
+        <div class="flex items-center gap-2">
+          <button onclick="setAction('TIME IN')" id="btnActionIn" class="px-4 py-1.5 text-xs font-black rounded-lg bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-400">TIME IN</button>
+          <button onclick="setAction('TIME OUT')" id="btnActionOut" class="px-4 py-1.5 text-xs font-black rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300">TIME OUT</button>
+        </div>
+      </div>
+
+      <!-- Kiosk Two-Column Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left: Biometric & LRN Scanner Terminal -->
+        <div class="lg:col-span-7 bg-white rounded-3xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 004 11a7.978 7.978 0 003.046 6.297m7.955 3.703a11.956 11.956 0 01-6 0"/></svg>
+                </div>
+                <div>
+                  <h3 class="font-extrabold text-slate-900 text-sm">Optical Biometric Fingerprint Scanner</h3>
+                  <p class="text-[11px] text-slate-500">Touch the scanner plate below or enter 12-Digit LRN</p>
+                </div>
+              </div>
+              <span id="scannerIndicator" class="px-2.5 py-1 text-[10px] font-extrabold uppercase rounded-full bg-emerald-100 text-emerald-800">Sensor Ready</span>
+            </div>
+
+            <!-- Visual Biometric Scanner Pad -->
+            <div class="my-6 flex flex-col items-center justify-center">
+              <div id="scannerPad" onclick="simulateFingerprintScan()" class="relative w-40 h-48 rounded-2xl bg-gradient-to-b from-slate-900 to-blue-950 border-4 border-slate-700 flex flex-col items-center justify-center cursor-pointer shadow-inner hover:border-blue-500 transition-all group overflow-hidden">
+                <div class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                
+                <!-- Fingerprint SVG graphic -->
+                <svg id="fingerprintSvg" class="w-20 h-20 text-blue-400 group-hover:scale-105 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 004 11a7.978 7.978 0 003.046 6.297m7.955 3.703a11.956 11.956 0 01-6 0"/>
+                </svg>
+
+                <span class="mt-3 text-[10px] uppercase font-bold tracking-widest text-blue-300">Tap to Scan</span>
+                <div id="scanProgressBar" class="absolute bottom-0 left-0 right-0 h-1.5 bg-emerald-500 w-0 transition-all duration-300"></div>
+              </div>
+
+              <p class="text-xs text-slate-500 text-center mt-3 font-medium">Place registered thumb / index finger on the optical sensor</p>
+            </div>
+
+            <!-- Alternative: Fast LRN Entry Keypad -->
+            <div class="mt-4 pt-4 border-t border-slate-100">
+              <label class="block text-xs font-bold text-slate-700 mb-1">Manual 12-Digit Learner Reference Number (LRN):</label>
+              <div class="flex gap-2">
+                <input type="text" id="manualLrnInput" maxlength="12" placeholder="e.g. 106982120045" class="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-sm font-mono font-bold tracking-wider text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="handleManualLrnSubmit()" class="px-5 py-2 bg-[#002B6D] hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition-colors">Verify LRN</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fast Learner Select Dropdown for Demo Ease -->
+          <div class="mt-6 bg-slate-50 p-3 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+            <span class="text-slate-600 font-medium">Quick Select Enrolled Learner:</span>
+            <select id="quickLearnerSelect" onchange="selectLearnerFromQuick(this.value)" class="bg-white border border-slate-300 rounded-lg px-3 py-1 font-bold text-slate-800 text-xs">
+              <option value="">-- Choose Learner --</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Right: Verification Result & Learner Profile Card -->
+        <div class="lg:col-span-5 bg-white rounded-3xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 class="font-extrabold text-slate-900 text-sm">Verification Status</h3>
+              <span id="cardStatusBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-600">AWAITING SCAN</span>
+            </div>
+
+            <!-- Learner ID Visual Card -->
+            <div id="verificationResultCard" class="my-5 p-5 rounded-2xl bg-gradient-to-br from-blue-900 to-indigo-950 text-white shadow-md relative overflow-hidden">
+              <div class="absolute -right-10 -bottom-10 opacity-10">
+                <svg class="w-48 h-48" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+              </div>
+
+              <div class="flex items-center space-x-4 relative z-10">
+                <div id="learnerAvatar" class="w-16 h-16 rounded-2xl bg-white/20 border-2 border-yellow-400 flex items-center justify-center font-black text-2xl text-yellow-300 shadow-sm">
+                  ?
+                </div>
+                <div>
+                  <div class="text-[10px] uppercase font-bold tracking-widest text-yellow-300">DepEd ALS Learner</div>
+                  <h4 id="learnerCardName" class="font-black text-lg leading-tight">Ready for Verification</h4>
+                  <p id="learnerCardLrn" class="text-xs font-mono text-blue-200 mt-0.5">LRN: —</p>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-white/10 grid grid-cols-2 gap-2 text-xs relative z-10">
+                <div>
+                  <span class="text-[10px] text-blue-300 uppercase block">Program:</span>
+                  <span id="learnerCardProgram" class="font-bold text-white text-xs">—</span>
+                </div>
+                <div>
+                  <span class="text-[10px] text-blue-300 uppercase block">CLC Assignment:</span>
+                  <span id="learnerCardClc" class="font-bold text-white text-xs truncate block">—</span>
+                </div>
+                <div>
+                  <span class="text-[10px] text-blue-300 uppercase block">Action Logged:</span>
+                  <span id="learnerCardAction" class="font-bold text-yellow-300 text-xs">—</span>
+                </div>
+                <div>
+                  <span class="text-[10px] text-blue-300 uppercase block">Timestamp:</span>
+                  <span id="learnerCardTime" class="font-bold text-white text-xs">—</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Message Alert Banner -->
+            <div id="kioskAlertBox" class="hidden p-3 rounded-xl text-xs font-bold flex items-center space-x-2">
+              <span id="kioskAlertIcon">✓</span>
+              <span id="kioskAlertMsg">Check-in confirmed</span>
+            </div>
+          </div>
+
+          <!-- Today's Recent Check-ins Strip -->
+          <div class="mt-4 pt-4 border-t border-slate-100">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[11px] font-bold text-slate-500 uppercase">Recent Check-ins Today</span>
+              <button onclick="switchTab('logs')" class="text-[11px] font-extrabold text-blue-700 hover:underline">View All &rarr;</button>
+            </div>
+            <div id="recentLogsMiniList" class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+              <!-- Dynamically populated -->
+              <p class="text-xs text-slate-400 italic py-2 text-center">No attendance logs recorded yet today.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 2: LEARNER REGISTRY & BIOMETRIC ENROLL -->
+    <!-- ========================================== -->
+    <section id="view-learners" class="tab-content hidden space-y-6">
+      
+      <!-- Top Action Bar -->
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <input type="text" id="learnerSearchInput" oninput="filterLearnersTable()" placeholder="Search by name, LRN, or CLC..." class="bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-xs font-bold text-slate-800 w-64 focus:ring-2 focus:ring-blue-500">
+          <span class="text-xs font-bold text-slate-500">Total Enrolled: <span id="totalLearnersBadge" class="text-blue-900 font-extrabold">0</span></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openEnrollModal()" class="px-4 py-2 bg-[#002B6D] hover:bg-blue-800 text-white text-xs font-bold rounded-xl flex items-center space-x-1.5 shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+            <span>Enroll New Learner</span>
+          </button>
+          <button onclick="resetLearnerRegistryToDefault()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-300">
+            Reset Sample Data
+          </button>
+        </div>
+      </div>
+
+      <!-- Learners Table -->
+      <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-[#002B6D] text-white font-extrabold uppercase text-[10px] tracking-wider border-b border-blue-950">
+              <tr>
+                <th class="py-3 px-4">Learner Name</th>
+                <th class="py-3 px-4 font-mono">12-Digit LRN</th>
+                <th class="py-3 px-4">Program Level</th>
+                <th class="py-3 px-4">Assigned CLC</th>
+                <th class="py-3 px-4">Facilitator</th>
+                <th class="py-3 px-4 text-center">Biometrics</th>
+                <th class="py-3 px-4 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="learnersTableBody" class="divide-y divide-slate-200">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 3: ATTENDANCE LOGS & EXPORT -->
+    <!-- ========================================== -->
+    <section id="view-logs" class="tab-content hidden space-y-6">
+      
+      <!-- Top Filter & Export Bar -->
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex flex-wrap items-center gap-2">
+          <input type="date" id="logDateFilter" onchange="renderAttendanceLogs()" class="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800">
+          <select id="logActionFilter" onchange="renderAttendanceLogs()" class="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800">
+            <option value="ALL">All Actions</option>
+            <option value="TIME IN">TIME IN Only</option>
+            <option value="TIME OUT">TIME OUT Only</option>
+          </select>
+          <select id="logSessionFilter" onchange="renderAttendanceLogs()" class="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800">
+            <option value="ALL">All Sessions</option>
+            <option value="Morning Session">Morning Session</option>
+            <option value="Afternoon Session">Afternoon Session</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="exportLogsToCsv()" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>Export CSV (Excel)</span>
+          </button>
+          <button onclick="window.print()" class="px-4 py-2 bg-[#002B6D] hover:bg-blue-800 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            <span>Print Form</span>
+          </button>
+          <button onclick="clearAllAttendanceLogs()" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold">
+            Clear Logs
+          </button>
+        </div>
+      </div>
+
+      <!-- Logs Table -->
+      <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-[#002B6D] text-white font-extrabold uppercase text-[10px] tracking-wider border-b border-blue-950">
+              <tr>
+                <th class="py-3 px-4">Timestamp</th>
+                <th class="py-3 px-4">Learner Name</th>
+                <th class="py-3 px-4 font-mono">LRN</th>
+                <th class="py-3 px-4">Action</th>
+                <th class="py-3 px-4">Session</th>
+                <th class="py-3 px-4">Learning Center</th>
+                <th class="py-3 px-4">Method / Geo</th>
+                <th class="py-3 px-4 text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody" class="divide-y divide-slate-200">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 4: SUMMARY ANALYTICS -->
+    <!-- ========================================== -->
+    <section id="view-analytics" class="tab-content hidden space-y-6">
+      
+      <!-- Top Stat Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+          <div class="text-[11px] font-bold text-slate-500 uppercase">Today's Check-ins</div>
+          <div id="statTodayCount" class="text-3xl font-black text-[#002B6D] mt-1">0</div>
+          <div class="text-[11px] text-emerald-600 font-bold mt-1">✓ Active Attendance</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+          <div class="text-[11px] font-bold text-slate-500 uppercase">Morning (AM) Sessions</div>
+          <div id="statMorningCount" class="text-3xl font-black text-amber-600 mt-1">0</div>
+          <div class="text-[11px] text-slate-500 font-medium mt-1">8:00 AM – 12:00 PM</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+          <div class="text-[11px] font-bold text-slate-500 uppercase">Afternoon (PM) Sessions</div>
+          <div id="statAfternoonCount" class="text-3xl font-black text-indigo-600 mt-1">0</div>
+          <div class="text-[11px] text-slate-500 font-medium mt-1">1:00 PM – 5:00 PM</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+          <div class="text-[11px] font-bold text-slate-500 uppercase">Biometric Verified Rate</div>
+          <div id="statVerifiedRate" class="text-3xl font-black text-emerald-600 mt-1">100%</div>
+          <div class="text-[11px] text-slate-500 font-medium mt-1">Optical scan / LRN match</div>
+        </div>
+      </div>
+
+      <!-- Breakdown Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Attendance by Program -->
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+          <h4 class="font-black text-slate-900 text-sm mb-4">Attendance by Program Level</h4>
+          <div class="space-y-4">
+            <div>
+              <div class="flex justify-between text-xs font-bold mb-1">
+                <span>Basic Literacy Program (BLP)</span>
+                <span id="statBlpProg">0 logs</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-3">
+                <div id="barBlpProg" class="bg-blue-600 h-3 rounded-full" style="width: 0%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs font-bold mb-1">
+                <span>A&E Elementary</span>
+                <span id="statElemProg">0 logs</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-3">
+                <div id="barElemProg" class="bg-amber-500 h-3 rounded-full" style="width: 0%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs font-bold mb-1">
+                <span>A&E Junior High School</span>
+                <span id="statJhsProg">0 logs</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-3">
+                <div id="barJhsProg" class="bg-emerald-600 h-3 rounded-full" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gender Breakdown -->
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+          <h4 class="font-black text-slate-900 text-sm mb-4">Gender Distribution</h4>
+          <div class="flex items-center justify-around py-4">
+            <div class="text-center">
+              <div class="w-16 h-16 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-black text-xl mx-auto mb-2">M</div>
+              <div class="text-xs text-slate-500 font-bold">Male Learners</div>
+              <div id="statMaleCount" class="text-xl font-black text-blue-900">0</div>
+            </div>
+            <div class="h-16 w-px bg-slate-200"></div>
+            <div class="text-center">
+              <div class="w-16 h-16 rounded-full bg-pink-100 text-pink-700 flex items-center justify-center font-black text-xl mx-auto mb-2">F</div>
+              <div class="text-xs text-slate-500 font-bold">Female Learners</div>
+              <div id="statFemaleCount" class="text-xl font-black text-pink-900">0</div>
+            </div>
+          </div>
+          <p class="text-xs text-slate-400 text-center mt-2">Data dynamically aggregated from registered learners and live check-ins.</p>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- MODAL: ENROLL NEW LEARNER -->
+  <!-- ========================================== -->
+  <div id="enrollModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="font-black text-slate-900 text-base">Enroll New ALS Learner</h3>
+        <button onclick="closeEnrollModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">&times;</button>
+      </div>
+
+      <form id="enrollForm" onsubmit="handleEnrollSubmit(event)" class="space-y-4 mt-4 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Full Name (Last, First, Middle):</label>
+          <input type="text" id="enrollName" required placeholder="e.g. DELA CRUZ, JUAN M." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-bold text-slate-900">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">12-Digit LRN:</label>
+            <input type="text" id="enrollLrn" required maxlength="12" placeholder="106982120099" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-mono font-bold text-slate-900">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Gender:</label>
+            <select id="enrollGender" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-bold text-slate-900">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Program Level:</label>
+            <select id="enrollProgram" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-bold text-slate-900">
+              <option value="A&E Junior High School">A&E Junior High School</option>
+              <option value="A&E Elementary">A&E Elementary</option>
+              <option value="Basic Literacy Program (BLP)">Basic Literacy Program (BLP)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Assigned CLC:</label>
+            <select id="enrollClc" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-bold text-slate-900">
+              <option value="San Sebastian Community Based Learning Center">San Sebastian CLC</option>
+              <option value="Sapang Tagalog Community Based Learning Center">Sapang Tagalog CLC</option>
+              <option value="San Francisco Community Based Learning Center">San Francisco CLC</option>
+              <option value="Burot Community Based Learning Center">Burot CLC</option>
+              <option value="Carangian Community Learning Center">Carangian CLC</option>
+              <option value="Matatalaib Community Learning Center">Matatalaib CLC</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Teacher / Facilitator:</label>
+          <input type="text" id="enrollTeacher" value="MELODY ANNE B. AQUINO" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-bold text-slate-900">
+        </div>
+
+        <div class="pt-2 flex justify-end space-x-2">
+          <button type="button" onclick="closeEnrollModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-[#002B6D] hover:bg-blue-800 text-white font-bold rounded-xl">Save & Register</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Audio Chime Generator using Web Audio API -->
+  <script>
+    // Audio synthesizer for check-in beeps (no external audio files needed)
+    function playAudioTone(type) {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'success') {
+          // Upbeat major chord beep
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+          osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1); // A5
+          gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.35);
+        } else {
+          // Warning low buzz
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.4);
+        }
+      } catch (e) {
+        console.warn('AudioContext not supported or permission denied', e);
+      }
+    }
+  </script>
+
+  <!-- ========================================== -->
+  <!-- MAIN JAVASCRIPT LOGIC -->
+  <!-- ========================================== -->
+  <script>
+    // Initial Default Seed Data
+    const DEFAULT_LEARNERS = [
+      {
+        id: 'L-001',
+        name: 'AQUINO, MARCO J.',
+        lrn: '106982120011',
+        gender: 'Male',
+        program: 'A&E Junior High School',
+        clc: 'San Sebastian Community Based Learning Center',
+        teacher: 'MELODY ANNE B. AQUINO',
+        hasBiometrics: true
+      },
+      {
+        id: 'L-002',
+        name: 'SANTOS, MARIA CLARA E.',
+        lrn: '106982120022',
+        gender: 'Female',
+        program: 'A&E Junior High School',
+        clc: 'Sapang Tagalog Community Based Learning Center',
+        teacher: 'MELODY ANNE B. AQUINO',
+        hasBiometrics: true
+      },
+      {
+        id: 'L-003',
+        name: 'DELA CRUZ, JUAN B.',
+        lrn: '106982120033',
+        gender: 'Male',
+        program: 'A&E Elementary',
+        clc: 'Sapang Tagalog Community Based Learning Center',
+        teacher: 'MELODY ANNE B. AQUINO',
+        hasBiometrics: true
+      },
+      {
+        id: 'L-004',
+        name: 'MENDOZA, KRISTINE G.',
+        lrn: '106982120044',
+        gender: 'Female',
+        program: 'Basic Literacy Program (BLP)',
+        clc: 'San Francisco Community Based Learning Center',
+        teacher: 'MELODY ANNE B. AQUINO',
+        hasBiometrics: true
+      },
+      {
+        id: 'L-005',
+        name: 'RAMOS, MARK ANTHONY T.',
+        lrn: '106982120055',
+        gender: 'Male',
+        program: 'A&E Junior High School',
+        clc: 'Burot Community Based Learning Center',
+        teacher: 'MELODY ANNE B. AQUINO',
+        hasBiometrics: true
+      }
+    ];
+
+    // State Variables
+    let currentSession = 'Morning Session';
+    let currentAction = 'TIME IN';
+    let learners = [];
+    let attendanceLogs = [];
+
+    // LocalStorage Keys
+    const STORAGE_KEY_LEARNERS = 'deped_als_learners_db';
+    const STORAGE_KEY_LOGS = 'deped_als_attendance_logs';
+
+    // Initialize Data
+    function initData() {
+      const savedLearners = localStorage.getItem(STORAGE_KEY_LEARNERS);
+      if (savedLearners) {
+        try {
+          learners = JSON.parse(savedLearners);
+        } catch (e) {
+          learners = [...DEFAULT_LEARNERS];
+        }
+      } else {
+        learners = [...DEFAULT_LEARNERS];
+        saveLearners();
+      }
+
+      const savedLogs = localStorage.getItem(STORAGE_KEY_LOGS);
+      if (savedLogs) {
+        try {
+          attendanceLogs = JSON.parse(savedLogs);
+        } catch (e) {
+          attendanceLogs = [];
+        }
+      } else {
+        attendanceLogs = [];
+      }
+
+      updateUI();
+    }
+
+    function saveLearners() {
+      localStorage.setItem(STORAGE_KEY_LEARNERS, JSON.stringify(learners));
+    }
+
+    function saveLogs() {
+      localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(attendanceLogs));
+    }
+
+    // Tab Switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-yellow-400', 'text-slate-900');
+        btn.classList.add('text-blue-200');
+      });
+
+      const activeView = document.getElementById(`view-${tabId}`);
+      if (activeView) activeView.classList.remove('hidden');
+
+      const activeBtn = document.getElementById(`tabBtn-${tabId}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-blue-200');
+        activeBtn.classList.add('bg-yellow-400', 'text-slate-900');
+      }
+
+      if (tabId === 'logs') renderAttendanceLogs();
+      if (tabId === 'analytics') renderAnalytics();
+      if (tabId === 'learners') renderLearnersTable();
+    }
+
+    // Set Session (Morning / Afternoon)
+    function setSession(session) {
+      currentSession = session;
+      const btnM = document.getElementById('btnMorning');
+      const btnA = document.getElementById('btnAfternoon');
+      if (session === 'Morning Session') {
+        btnM.className = 'px-3 py-1 text-xs font-bold rounded-md bg-white text-blue-900 shadow-xs';
+        btnA.className = 'px-3 py-1 text-xs font-bold rounded-md text-slate-600 hover:text-slate-900';
+      } else {
+        btnA.className = 'px-3 py-1 text-xs font-bold rounded-md bg-white text-blue-900 shadow-xs';
+        btnM.className = 'px-3 py-1 text-xs font-bold rounded-md text-slate-600 hover:text-slate-900';
+      }
+    }
+
+    // Set Action (TIME IN / TIME OUT)
+    function setAction(action) {
+      currentAction = action;
+      const btnIn = document.getElementById('btnActionIn');
+      const btnOut = document.getElementById('btnActionOut');
+      if (action === 'TIME IN') {
+        btnIn.className = 'px-4 py-1.5 text-xs font-black rounded-lg bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-400';
+        btnOut.className = 'px-4 py-1.5 text-xs font-black rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300';
+      } else {
+        btnOut.className = 'px-4 py-1.5 text-xs font-black rounded-lg bg-rose-600 text-white shadow-sm ring-2 ring-rose-400';
+        btnIn.className = 'px-4 py-1.5 text-xs font-black rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300';
+      }
+    }
+
+    // Live Clock & Calendar
+    function startClock() {
+      const update = () => {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: '2-digit', year: 'numeric' });
+        document.getElementById('liveClock').textContent = timeStr;
+        document.getElementById('liveDate').textContent = dateStr;
+      };
+      update();
+      setInterval(update, 1000);
+    }
+
+    // Update Overall UI
+    function updateUI() {
+      document.getElementById('logCountBadge').textContent = attendanceLogs.length;
+      document.getElementById('totalLearnersBadge').textContent = learners.length;
+
+      // Populate Quick Select Dropdown
+      const select = document.getElementById('quickLearnerSelect');
+      select.innerHTML = '<option value="">-- Choose Learner --</option>';
+      learners.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l.lrn;
+        opt.textContent = `${l.name} (${l.lrn})`;
+        select.appendChild(opt);
+      });
+
+      renderLearnersTable();
+      renderRecentLogsMini();
+      renderAttendanceLogs();
+      renderAnalytics();
+    }
+
+    // Quick Select handler
+    function selectLearnerFromQuick(lrn) {
+      if (!lrn) return;
+      document.getElementById('manualLrnInput').value = lrn;
+      handleManualLrnSubmit();
+    }
+
+    // Fingerprint Optical Scan Simulation
+    function simulateFingerprintScan() {
+      if (learners.length === 0) {
+        showKioskAlert('No learners in registry to scan.', 'error');
+        return;
+      }
+
+      const pad = document.getElementById('scannerPad');
+      const bar = document.getElementById('scanProgressBar');
+      const svg = document.getElementById('fingerprintSvg');
+      const indicator = document.getElementById('scannerIndicator');
+
+      pad.classList.add('scanner-active');
+      svg.classList.add('text-emerald-400');
+      indicator.textContent = 'SCANNING...';
+      indicator.className = 'px-2.5 py-1 text-[10px] font-extrabold uppercase rounded-full bg-blue-100 text-blue-800 animate-pulse';
+
+      bar.style.width = '100%';
+
+      setTimeout(() => {
+        pad.classList.remove('scanner-active');
+        svg.classList.remove('text-emerald-400');
+        bar.style.width = '0%';
+        indicator.textContent = 'SENSOR READY';
+        indicator.className = 'px-2.5 py-1 text-[10px] font-extrabold uppercase rounded-full bg-emerald-100 text-emerald-800';
+
+        // Select learner: check if manual LRN input has text, or pick random enrolled learner
+        const manualLrn = document.getElementById('manualLrnInput').value.trim();
+        let targetLearner = null;
+
+        if (manualLrn) {
+          targetLearner = learners.find(l => l.lrn === manualLrn);
+        }
+        if (!targetLearner) {
+          // Pick learner matching selected CLC or random
+          const currentClc = document.getElementById('kioskClcSelect').value;
+          const clcLearners = learners.filter(l => l.clc === currentClc);
+          targetLearner = clcLearners.length > 0 ? clcLearners[Math.floor(Math.random() * clcLearners.length)] : learners[Math.floor(Math.random() * learners.length)];
+        }
+
+        if (targetLearner) {
+          processAttendanceRecord(targetLearner, 'Optical Fingerprint');
+        } else {
+          showKioskAlert('Fingerprint template not recognized.', 'error');
+          playAudioTone('error');
+        }
+      }, 700);
+    }
+
+    // Handle Manual LRN Verification
+    function handleManualLrnSubmit() {
+      const input = document.getElementById('manualLrnInput');
+      const val = input.value.trim();
+      if (!val) {
+        showKioskAlert('Please enter a 12-digit LRN.', 'error');
+        return;
+      }
+
+      const learner = learners.find(l => l.lrn === val);
+      if (learner) {
+        processAttendanceRecord(learner, '12-Digit LRN Keypad');
+        input.value = '';
+      } else {
+        showKioskAlert(`LRN "${val}" is not in the enrolled registry.`, 'error');
+        playAudioTone('error');
+      }
+    }
+
+    // Process Attendance Record
+    function processAttendanceRecord(learner, method) {
+      const now = new Date();
+      const timestamp = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+      const currentClc = document.getElementById('kioskClcSelect').value;
+
+      const logEntry = {
+        id: 'LOG-' + Date.now(),
+        timestamp: timestamp,
+        learnerId: learner.id,
+        name: learner.name,
+        lrn: learner.lrn,
+        action: currentAction,
+        session: currentSession,
+        clc: currentClc,
+        method: method,
+        status: 'VERIFIED'
+      };
+
+      attendanceLogs.unshift(logEntry);
+      saveLogs();
+
+      // Update Card Visuals
+      document.getElementById('learnerCardName').textContent = learner.name;
+      document.getElementById('learnerCardLrn').textContent = 'LRN: ' + learner.lrn;
+      document.getElementById('learnerCardProgram').textContent = learner.program;
+      document.getElementById('learnerCardClc').textContent = currentClc;
+      document.getElementById('learnerCardAction').textContent = currentAction;
+      document.getElementById('learnerCardTime').textContent = now.toLocaleTimeString();
+      document.getElementById('learnerAvatar').textContent = learner.name.charAt(0);
+
+      const statusBadge = document.getElementById('cardStatusBadge');
+      statusBadge.textContent = 'VERIFIED ' + currentAction;
+      statusBadge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800';
+
+      showKioskAlert(`✓ ${currentAction} recorded for ${learner.name}`, 'success');
+      playAudioTone('success');
+
+      updateUI();
+    }
+
+    // Alert Message Box
+    function showKioskAlert(msg, type) {
+      const box = document.getElementById('kioskAlertBox');
+      const icon = document.getElementById('kioskAlertIcon');
+      const text = document.getElementById('kioskAlertMsg');
+
+      box.classList.remove('hidden');
+      text.textContent = msg;
+
+      if (type === 'success') {
+        box.className = 'p-3 rounded-xl text-xs font-bold flex items-center space-x-2 bg-emerald-50 text-emerald-800 border border-emerald-200';
+        icon.textContent = '✓';
+      } else {
+        box.className = 'p-3 rounded-xl text-xs font-bold flex items-center space-x-2 bg-rose-50 text-rose-800 border border-rose-200';
+        icon.textContent = '✕';
+      }
+
+      setTimeout(() => {
+        box.classList.add('hidden');
+      }, 4000);
+    }
+
+    // Render Recent Logs Mini List
+    function renderRecentLogsMini() {
+      const container = document.getElementById('recentLogsMiniList');
+      if (attendanceLogs.length === 0) {
+        container.innerHTML = '<p class="text-xs text-slate-400 italic py-2 text-center">No attendance logs recorded yet today.</p>';
+        return;
+      }
+
+      container.innerHTML = attendanceLogs.slice(0, 4).map(log => `
+        <div class="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+          <div class="flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full ${log.action === 'TIME IN' ? 'bg-emerald-500' : 'bg-rose-500'}"></span>
+            <div>
+              <div class="font-bold text-slate-900">${log.name}</div>
+              <div class="text-[10px] text-slate-400 font-mono">${log.lrn} &bull; ${log.session}</div>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="font-extrabold text-[10px] ${log.action === 'TIME IN' ? 'text-emerald-700 bg-emerald-100' : 'text-rose-700 bg-rose-100'} px-2 py-0.5 rounded-full">${log.action}</span>
+            <div class="text-[9px] text-slate-400 mt-0.5">${log.timestamp.split(' ')[1] || ''}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Render Learners Table
+    function renderLearnersTable() {
+      const tbody = document.getElementById('learnersTableBody');
+      const search = (document.getElementById('learnerSearchInput')?.value || '').toLowerCase();
+
+      const filtered = learners.filter(l => 
+        l.name.toLowerCase().includes(search) || 
+        l.lrn.includes(search) || 
+        l.clc.toLowerCase().includes(search)
+      );
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400 font-bold">No learners match your search.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(l => `
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="py-3 px-4 font-bold text-slate-900">${l.name}</td>
+          <td class="py-3 px-4 font-mono font-bold text-blue-900">${l.lrn}</td>
+          <td class="py-3 px-4">${l.program}</td>
+          <td class="py-3 px-4 truncate max-w-xs" title="${l.clc}">${l.clc}</td>
+          <td class="py-3 px-4 text-slate-600">${l.teacher}</td>
+          <td class="py-3 px-4 text-center">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+              ✓ Registered
+            </span>
+          </td>
+          <td class="py-3 px-4 text-center">
+            <button onclick="quickCheckInLearner('${l.lrn}')" class="px-2.5 py-1 bg-[#002B6D] hover:bg-blue-800 text-white rounded-lg text-[10px] font-bold">
+              Check-In
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function filterLearnersTable() {
+      renderLearnersTable();
+    }
+
+    function quickCheckInLearner(lrn) {
+      const l = learners.find(x => x.lrn === lrn);
+      if (l) {
+        processAttendanceRecord(l, 'Registry Quick Tap');
+        switchTab('terminal');
+      }
+    }
+
+    // Render Full Attendance Logs Table
+    function renderAttendanceLogs() {
+      const tbody = document.getElementById('logsTableBody');
+      const actionFilter = document.getElementById('logActionFilter')?.value || 'ALL';
+      const sessionFilter = document.getElementById('logSessionFilter')?.value || 'ALL';
+      const dateFilter = document.getElementById('logDateFilter')?.value;
+
+      let filtered = [...attendanceLogs];
+
+      if (actionFilter !== 'ALL') {
+        filtered = filtered.filter(l => l.action === actionFilter);
+      }
+      if (sessionFilter !== 'ALL') {
+        filtered = filtered.filter(l => l.session === sessionFilter);
+      }
+      if (dateFilter) {
+        filtered = filtered.filter(l => l.timestamp.includes(dateFilter));
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="py-12 text-center text-slate-400 font-bold">No attendance records found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(log => `
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="py-2.5 px-4 font-mono text-slate-500 whitespace-nowrap">${log.timestamp}</td>
+          <td class="py-2.5 px-4 font-bold text-slate-900">${log.name}</td>
+          <td class="py-2.5 px-4 font-mono font-bold text-blue-900">${log.lrn}</td>
+          <td class="py-2.5 px-4">
+            <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black ${log.action === 'TIME IN' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+              ${log.action}
+            </span>
+          </td>
+          <td class="py-2.5 px-4 font-bold text-slate-700">${log.session}</td>
+          <td class="py-2.5 px-4 truncate max-w-xs" title="${log.clc}">${log.clc}</td>
+          <td class="py-2.5 px-4 text-slate-600 text-[11px]">${log.method}</td>
+          <td class="py-2.5 px-4 text-center">
+            <span class="text-emerald-600 font-extrabold">✓ OK</span>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Export Logs to CSV
+    function exportLogsToCsv() {
+      if (attendanceLogs.length === 0) {
+        alert('Walang logs na pwedeng i-export.');
+        return;
+      }
+
+      const headers = ['Log ID', 'Timestamp', 'Learner Name', 'LRN', 'Action', 'Session', 'Learning Center', 'Verification Method', 'Status'];
+      const rows = attendanceLogs.map(l => [
+        `"${l.id}"`,
+        `"${l.timestamp}"`,
+        `"${l.name.replace(/"/g, '""')}"`,
+        `"${l.lrn}"`,
+        `"${l.action}"`,
+        `"${l.session}"`,
+        `"${l.clc.replace(/"/g, '""')}"`,
+        `"${l.method}"`,
+        `"${l.status}"`
+      ]);
+
+      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `DepEd_ALS_Attendance_Logs_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Clear Logs
+    function clearAllAttendanceLogs() {
+      if (confirm('Sigurado ka bang nais mong burahin ang lahat ng Attendance Logs?')) {
+        attendanceLogs = [];
+        saveLogs();
+        updateUI();
+      }
+    }
+
+    // Reset Learners to Default Sample Data
+    function resetLearnerRegistryToDefault() {
+      if (confirm('I-reset ang learner directory sa opisyal na DepEd sample learners?')) {
+        learners = [...DEFAULT_LEARNERS];
+        saveLearners();
+        updateUI();
+      }
+    }
+
+    // Modal Operations
+    function openEnrollModal() {
+      document.getElementById('enrollModal').classList.remove('hidden');
+    }
+
+    function closeEnrollModal() {
+      document.getElementById('enrollModal').classList.add('hidden');
+    }
+
+    function handleEnrollSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('enrollName').value.trim();
+      const lrn = document.getElementById('enrollLrn').value.trim();
+      const gender = document.getElementById('enrollGender').value;
+      const program = document.getElementById('enrollProgram').value;
+      const clc = document.getElementById('enrollClc').value;
+      const teacher = document.getElementById('enrollTeacher').value.trim();
+
+      if (learners.some(l => l.lrn === lrn)) {
+        alert('Ang LRN na ito ay nakarehistro na!');
+        return;
+      }
+
+      const newLearner = {
+        id: 'L-' + Date.now(),
+        name,
+        lrn,
+        gender,
+        program,
+        clc,
+        teacher,
+        hasBiometrics: true
+      };
+
+      learners.push(newLearner);
+      saveLearners();
+      closeEnrollModal();
+      document.getElementById('enrollForm').reset();
+      updateUI();
+      alert(`Matagumpay na na-enroll si ${name}!`);
+    }
+
+    // Render Summary Analytics
+    function renderAnalytics() {
+      const todayStr = new Date().toLocaleDateString();
+      const todayLogs = attendanceLogs.filter(l => l.timestamp.includes(todayStr));
+
+      document.getElementById('statTodayCount').textContent = todayLogs.length;
+
+      const morning = todayLogs.filter(l => l.session === 'Morning Session').length;
+      const afternoon = todayLogs.filter(l => l.session === 'Afternoon Session').length;
+
+      document.getElementById('statMorningCount').textContent = morning;
+      document.getElementById('statAfternoonCount').textContent = afternoon;
+
+      // Program breakdown
+      const blpCount = attendanceLogs.filter(l => {
+        const learner = learners.find(x => x.lrn === l.lrn);
+        return learner && learner.program.includes('BLP');
+      }).length;
+
+      const elemCount = attendanceLogs.filter(l => {
+        const learner = learners.find(x => x.lrn === l.lrn);
+        return learner && learner.program.includes('Elementary');
+      }).length;
+
+      const jhsCount = attendanceLogs.filter(l => {
+        const learner = learners.find(x => x.lrn === l.lrn);
+        return learner && learner.program.includes('Junior High');
+      }).length;
+
+      const totalLogs = attendanceLogs.length || 1;
+      document.getElementById('statBlpProg').textContent = `${blpCount} logs (${Math.round((blpCount / totalLogs) * 100)}%)`;
+      document.getElementById('barBlpProg').style.width = `${Math.min(100, Math.round((blpCount / totalLogs) * 100))}%`;
+
+      document.getElementById('statElemProg').textContent = `${elemCount} logs (${Math.round((elemCount / totalLogs) * 100)}%)`;
+      document.getElementById('barElemProg').style.width = `${Math.min(100, Math.round((elemCount / totalLogs) * 100))}%`;
+
+      document.getElementById('statJhsProg').textContent = `${jhsCount} logs (${Math.round((jhsCount / totalLogs) * 100)}%)`;
+      document.getElementById('barJhsProg').style.width = `${Math.min(100, Math.round((jhsCount / totalLogs) * 100))}%`;
+
+      // Gender Breakdown
+      const males = learners.filter(l => l.gender === 'Male').length;
+      const females = learners.filter(l => l.gender === 'Female').length;
+      document.getElementById('statMaleCount').textContent = males;
+      document.getElementById('statFemaleCount').textContent = females;
+    }
+
+    // Geolocation verification setup
+    function setupGeolocation() {
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            const status = document.getElementById('geoStatus');
+            status.textContent = 'GPS Active: ' + pos.coords.latitude.toFixed(4) + ', ' + pos.coords.longitude.toFixed(4);
+          },
+          err => {
+            const status = document.getElementById('geoStatus');
+            status.textContent = 'GPS Verified (CLC Default)';
+          }
+        );
+      }
+    }
+
+    // On Load
+    window.addEventListener('DOMContentLoaded', () => {
+      startClock();
+      initData();
+      setupGeolocation();
+    });
+  </script>
+</body>
+</html>

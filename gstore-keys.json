@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "gen-lang-client-0675008110",
+  "private_key_id": "9e84bd17d1436b327121397cae465115c2666ca1",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQD1KZh8jOEen5Yt\nLlKpmDmOHt5pSEA613zKuN1iVqWCXGkM2x1d3cXjW+p8u7v2iVyUldsNtVE0G7V8\nQWlIljEBnCtLjwYaWVwdL7+btIFCn9UKv6b/y9GJLjZf1utT8JmS3LIPaqLK+G8y\ndPri+3Ja1ovFllWzuuo5jwNcRS5j5cABSQcDbRJIdrsCZOeIYPyrlSTZ/VeQ7zBn\nkVjj6lMuoLVTJsKAGiVaadbO3aDDSVSy7F2WNnAOftQ5KIOeEAoNYH3FdnMJccTm\nK2MStoiNwBq8hzwr5pIAFJgB1yHOkKC4uYJy97YJuf1qJnzeQB1KyO4L9z92vafz\nB1nc4pYFAgMBAAECggEAFUGdQ0VKuoc/M90llSdJ7Djgc1Psn71xyDjllwJouMgO\n4qq33dzd7MPaLaTwW+SWhpqEouhi6UfywRqByKWfC6Lw/QziTFQNoMk0TYmFwJNP\nmy45SknvebusQryFbGJ6yklA1gXapgsKxx7t5tLC3D3oYgISHbJ53vI3qh8kccw9\nGdCG0EENmeLnxs3/jPnF/LmPBvyn8qC683SJSd+GtWv+F1G6Z6cLVmlBe7kvf1x2\n+QqQTWPfQPQBqrIFVg6MecQnOnuoJ7eu5YtdG/J6j3r9w6ld4G6PMK0bSO+Uwiw5\np6CuVjfkaKkNppm8FIFK7/cxhUPxpsDS8wAHoyIdAQKBgQD+3/m8mv0hTkS1n2RE\n2eTCnNmzgFTek4t5XfH092575e/AxILpEnK2CUscKbbxsHAtjEUiBr3G1KtmUFRw\nLF36Pt6AduJ1fKuyEmk50VMQW1lhwGlhD+78M6JpymNG4o57vnCk1o6rYdPw+2dJ\n6mnytuS9MvIAs3O/zbqrA6JNBQKBgQD2PqT8dFCL02TBEPjNhxsg/0QNqHglOWn/\nC7fXx9G9w5Xpcu35JpX9GW5L865wmyr0D6QY5+PygCFGWB9S10KwuGR1L4rCevlW\nllcNkWAc3aqSb3qmtf5WaQkQOI/4cUNsEOWsOgQ1TphI+fEkl6os0ZXBQR22ZB3B\n52u30Wl1AQKBgQCQfyST0/68eiYkHfh3vFygJNKbnJ8BDP8e0K8TJZBCt+qEDCT3\nxFi6cWxezBuGzHPcrtCm6NGAvyNpPxOQAOdKr4fvpvbeis7AhwWXHOCNvmxfKfnU\naHciDpf+iBpenqUO7LnqCiYabbz9u1okorxsOVpXFWH0Gcj+rcEtoULLjQKBgQDb\nuqqeW2xEWS3e2bYqMBUVLLMdPOd4z/K1k09JTRTrsEtlNRkE6lmMr9SsEZXnBY8e\nmZZkYwgUrCEFFD1fPpZT+zYpG3NGd1Vm3mBvyvloyKQcZz2a5Ws+0Bs2TkKp/uea\n1rkbJen7Z1acR+vWKz+/HoXzHJfW2R90l3yXWlYwAQKBgQDL5XKQ8XqSvmkt8pgs\n/ceUb2L35WpD+ctUbAdsG5PKDX/if7mbrtzzv4QFDM8aHk5mEAMdnFWWoDTBQ1q+\nYvR99BjTK4S2/ry5hMYn0wu4iTmO2PYrmPTeoWNVvIpTeMr2iAHZJhQme6sbRKuQ\nQzWWT3xLsFgWBgbaqCWTXDPJSw==\n-----END PRIVATE KEY-----\n",
+  "client_email": "datasphere-core-engine@gen-lang-client-0675008110.iam.gserviceaccount.com",
+  "client_id": "104278915307998145468",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/datasphere-core-engine%40gen-lang-client-0675008110.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

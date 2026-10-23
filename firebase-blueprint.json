@@ -1,0 +1,112 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered DepEd ALS teacher, coordinator, or administrator profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "DepEd / Google email address" },
+        "displayName": { "type": "string", "description": "Full name of the teacher or coordinator" },
+        "role": { "type": "string", "enum": ["teacher", "admin", "focal_person"], "description": "User access role" },
+        "clcName": { "type": "string", "description": "Primary Community Learning Center assignment" },
+        "district": { "type": "string", "description": "Assigned school district (e.g. Central A, South A)" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of profile creation" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last profile update" }
+      },
+      "required": ["uid", "email", "displayName", "role"]
+    },
+    "Learner": {
+      "title": "Learner",
+      "description": "DepEd ALS Learner enrolled or mapped in Community-Based Learning Centers from Google Sheets or Kiosk",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique learner record ID" },
+        "lrn": { "type": "string", "description": "12-digit Learner Reference Number or ID" },
+        "name": { "type": "string", "description": "Full name of the learner" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "middleName": { "type": "string" },
+        "gender": { "type": "string", "description": "Biological sex / gender" },
+        "program": { "type": "string", "description": "ALS Program Level" },
+        "clc": { "type": "string", "description": "Assigned Community Learning Center" },
+        "clcName": { "type": "string" },
+        "teacher": { "type": "string", "description": "Assigned mobile teacher / ALS facilitator" },
+        "barangay": { "type": "string", "description": "Barangay residence" },
+        "district": { "type": "string", "description": "District classification" },
+        "status": { "type": "string", "description": "Enrollment status" },
+        "source": { "type": "string", "description": "Source of data: google_sheets or manual" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of sync or update" }
+      },
+      "required": ["id"]
+    },
+    "AttendanceLog": {
+      "title": "AttendanceLog",
+      "description": "Digital attendance check-in / check-out log entry for ALS learner",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique log record ID" },
+        "learnerId": { "type": "string", "description": "Foreign key reference to Learner ID" },
+        "name": { "type": "string", "description": "Full name of learner at check-in" },
+        "lrn": { "type": "string", "description": "12-digit Learner Reference Number" },
+        "action": { "type": "string", "enum": ["TIME IN", "TIME OUT"], "description": "Attendance event type" },
+        "session": { "type": "string", "enum": ["Morning Session", "Afternoon Session"], "description": "School timetable session" },
+        "clc": { "type": "string", "description": "Community Learning Center where attendance was logged" },
+        "method": { "type": "string", "description": "Verification method (Optical Fingerprint, 12-Digit LRN Keypad, etc.)" },
+        "timestamp": { "type": "string", "description": "ISO or formatted timestamp of event" },
+        "status": { "type": "string", "description": "Verification status (e.g. VERIFIED)" }
+      },
+      "required": ["id", "name", "lrn", "action", "session", "clc", "timestamp"]
+    },
+    "SheetCache": {
+      "title": "SheetCache",
+      "description": "Cached Google Sheets dataset synchronized into Firestore",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Cache key (e.g. spreadsheetId_tabName)" },
+        "spreadsheetId": { "type": "string", "description": "Google Spreadsheet ID" },
+        "tabName": { "type": "string", "description": "Worksheet tab name" },
+        "rowCount": { "type": "number", "description": "Number of rows synced" },
+        "syncedAt": { "type": "string", "description": "ISO timestamp of sync" }
+      },
+      "required": ["id", "spreadsheetId", "tabName", "rowCount", "syncedAt"]
+    },
+    "ClassProgramSchedule": {
+      "title": "ClassProgramSchedule",
+      "description": "Weekly Schedule Timetable Matrix document for an ALS Facilitator",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Teacher name identifier or key" },
+        "teacherName": { "type": "string", "description": "Facilitator full name" },
+        "gid": { "type": "string", "description": "Google Sheets GID identifier" },
+        "clcName": { "type": "string", "description": "Primary assigned CLC" },
+        "programLevel": { "type": "string", "description": "Facilitator program scope" },
+        "lastSynced": { "type": "string", "description": "ISO timestamp of last Google Sheet sync" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" }
+      },
+      "required": ["id", "teacherName"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Registered user profile documents indexed by Firebase Auth UID"
+    },
+    "/learners/{learnerId}": {
+      "schema": { "$ref": "#/entities/Learner" },
+      "description": "Enrolled ALS learners directory synced from Google Sheets and updated via Kiosk"
+    },
+    "/attendance_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AttendanceLog" },
+      "description": "Real-time attendance logs recorded at Community-Based Learning Centers"
+    },
+    "/sheets_cache/{cacheId}": {
+      "schema": { "$ref": "#/entities/SheetCache" },
+      "description": "Cached Google Sheets tables synced into Firestore"
+    },
+    "/class_programs/{programId}": {
+      "schema": { "$ref": "#/entities/ClassProgramSchedule" },
+      "description": "Facilitator class program schedules and weekly timetable matrices"
+    }
+  }
+}
